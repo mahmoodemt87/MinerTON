@@ -1,0 +1,8 @@
+.env
+node_modules/
+data/
+*.log
+index.backup*
+index-backup*
+index.before-*
+public/*backup*

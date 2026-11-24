@@ -1,0 +1,533 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#100d08">
+<title>Miner TON</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--gold:#f8cc70;--bg:#100d08;--panel:#20190f}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#493219,#100d08 65%);color:#fff5df;font-family:Arial;padding:20px 16px 95px;text-align:center}
+header{padding:20px}
+.logo{font-size:29px;font-weight:900;letter-spacing:4px;color:var(--gold);text-shadow:0 0 20px #d69a36}
+.sub{font-size:10px;letter-spacing:4px;color:#a99a7d;margin-top:8px}
+.panel{background:linear-gradient(145deg,#302314,#17120c);border:1px solid #94702f;border-radius:22px;padding:20px;margin:15px auto;max-width:470px;box-shadow:0 8px 30px #0008}
+.label{font-size:11px;letter-spacing:2px;color:#a99a7d}
+.balance{font-size:40px;font-weight:bold;color:var(--gold);margin:12px}
+.coin{width:210px;height:210px;margin:30px auto;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:105px;background:radial-gradient(circle,#fff5c9,#e8b74c 45%,#9d6218 75%,#38220b);box-shadow:0 0 25px #e8b74c,0 0 65px #bd842d55;border:5px solid #f6d98e;cursor:pointer;user-select:none;transition:.12s}
+.coin:active{transform:scale(.91)}
+button{border:1px solid #d7ad59;border-radius:13px;padding:13px 18px;background:linear-gradient(135deg,#f3cf7c,#a66a1e);color:#261707;font-weight:bold;margin:5px}
+button.secondary{background:#302416;color:var(--gold)}
+.section{display:none;max-width:470px;margin:auto}
+.section.active{display:block}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:15px 0;border-bottom:1px solid #ffffff22;text-align:left}
+small,.notice{color:#a99a7d;font-size:12px;line-height:1.6}
+.energybar{height:10px;background:#483a27;border-radius:20px;overflow:hidden;margin-top:12px}
+.energyfill{height:100%;width:100%;background:linear-gradient(90deg,#b47a24,#ffe19a)}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:space-around;background:#171108;border-top:1px solid #98702f;padding:12px 4px calc(12px + env(safe-area-inset-bottom))}
+nav button{background:transparent;border:0;color:#c8b58d;font-size:10px;padding:7px 4px;margin:0}
+nav button.active{color:var(--gold)}
+nav span{display:block;font-size:19px;margin-bottom:5px}
+
+.offline-toast{
+  display:none;
+  position:fixed;
+  z-index:9999;
+  top:22px;
+  left:50%;
+  transform:translateX(-50%);
+  width:calc(100% - 32px);
+  max-width:420px;
+  padding:22px 15px;
+  border:1px solid #f8cc70;
+  border-radius:20px;
+  background:linear-gradient(145deg,#493015,#171008);
+  box-shadow:0 0 30px #e8b74c88;
+  text-align:center;
+  animation:rewardPop .5s ease;
+}
+.offline-toast.show{display:block}
+.offline-toast h2{
+  color:#f8cc70;
+  margin:0 0 10px;
+  letter-spacing:2px;
+}
+.offline-toast .reward-amount{
+  color:#fff0b5;
+  font-size:32px;
+  font-weight:900;
+  margin:8px;
+  text-shadow:0 0 15px #e8b74c;
+}
+.offline-toast p{color:#cbb58b;font-size:11px;margin:5px}
+@keyframes rewardPop{
+  from{opacity:0;transform:translate(-50%,-25px) scale(.85)}
+  to{opacity:1;transform:translate(-50%,0) scale(1)}
+}
+
+</style>
+</head>
+<body>
+<header><div class="logo">✦ MINER TON ✦</div><div class="sub">THE GOLDEN MINING EXPERIENCE</div></header>
+
+<div id="offlineToast" class="offline-toast">
+  <h2>✦ OFFLINE REWARD ✦</h2>
+  <div class="reward-amount" id="offlineAmount">+0 POINTS</div>
+  <p>YOUR MINER NEVER SLEEPS!</p>
+</div>
+
+
+<div id="home" class="section active">
+<div class="panel"><div class="label">YOUR TOTAL BALANCE</div><div class="balance" id="balance">0</div><div class="label">MINER TON POINTS</div></div>
+<div class="coin" onclick="mine()">💎</div>
+<div style="color:var(--gold)">✦ TAP TO MINE ✦</div>
+<p class="notice">Collect golden crystals and grow your balance.</p>
+<div class="panel"><b>⚡ ENERGY</b><div id="energy">1000 / 1000</div><div class="energybar"><div id="energyfill" class="energyfill"></div></div></div>
+<div class="panel"><div class="label">DAILY BONUS</div><h2 style="color:var(--gold)">🎁 100 POINTS</h2><button onclick="daily()">CLAIM REWARD</button></div>
+</div>
+
+<div id="upgrade" class="section">
+<div class="panel"><h2 style="color:var(--gold)">⚒️ GOLDEN UPGRADES</h2><p class="notice">Improve your mining power.</p>
+<div class="item"><div>⛏️ Pickaxe<small>Increase points per tap</small></div><button onclick="buyUpgrade()">BUY <span id="cost">100</span></button></div>
+<div class="item"><div>⚡ Energy<small>Increase maximum energy</small></div><button onclick="buyEnergy()">BUY 200</button></div>
+</div></div>
+
+<div id="tasks" class="section">
+  <div class="panel">
+    <h2 style="color:var(--gold)">🎯 DAILY MISSION</h2>
+    <p class="notice">Mine 100 times every day and earn 250 points!</p>
+    <div class="item">
+      <span>⛏️ Mining progress</span>
+      <b id="taskProgress" style="color:var(--gold)">0 / 100</b>
+    </div>
+    <div style="height:12px;background:#302416;border-radius:10px;overflow:hidden;margin:12px 0">
+      <div id="taskBar" style="height:100%;width:0%;background:var(--gold);border-radius:10px"></div>
+    </div>
+    <div class="item">
+      <span>🎁 Mission reward</span>
+      <b style="color:var(--gold)">250 POINTS</b>
+    </div>
+    <button id="claimTaskButton" onclick="claimTask()" disabled>🔒 COMPLETE 100 MINES</button>
+    <p id="taskMessage" class="notice">Start mining to make progress!</p>
+  </div>
+</div>
+
+<div id="profile" class="section"><div class="panel"><h2 style="color:var(--gold)">👤 MINER PROFILE</h2><p id="profileBalance">Balance: 0</p><p id="power">Mining power: 1</p><p id="level">Level: 1</p></div></div>
+
+
+
+<div id="vip" class="section">
+  <div class="panel">
+    <h2 style="color:var(--gold)">👑 VIP MINER</h2>
+    <p class="notice">Unlock permanent mining power bonuses!</p>
+    <div id="vipStatus" class="item">Loading VIP status...</div>
+    <div class="item">
+      <div>🥉 VIP BRONZE<small>Permanent +1 mining power</small></div>
+      <button id="buyVipBronze" onclick="buyVIP('bronze')">BUY 5,000</button>
+    </div>
+    <div class="item">
+      <div>🥇 VIP GOLD<small>Permanent +3 mining power</small></div>
+      <button id="buyVipGold" onclick="buyVIP('gold')">BUY 15,000</button>
+    </div>
+    <div class="item">
+      <div>💎 VIP DIAMOND<small>Permanent +7 mining power</small></div>
+      <button id="buyVipDiamond" onclick="buyVIP('diamond')">BUY 40,000</button>
+    </div>
+    <p class="notice">Permanent membership. Only one package can be purchased. Choose carefully.</p>
+  </div>
+</div>
+
+<div id="leaderboard" class="section">
+  <div class="panel">
+    <h2 style="color:var(--gold)">🏆 LEADERBOARD</h2>
+    <p class="notice">TOP 100 MINERS</p>
+    <div id="myRank" class="item" style="border:1px solid var(--gold)">
+      YOUR RANK: Loading...
+    </div>
+    <div id="leaderboardList">
+      <p class="notice">Loading players...</p>
+    </div>
+    <button onclick="loadLeaderboard()">🔄 REFRESH RANKING</button>
+  </div>
+</div>
+
+<nav>
+<button class="active" onclick="show('home',this)"><span>💎</span>HOME</button>
+<button onclick="show('upgrade',this)"><span>⚒️</span>UPGRADE</button>
+<button onclick="show('tasks',this)"><span>🎯</span>TASKS</button>
+
+<div id="referrals" class="section">
+  <div class="panel">
+    <h2 style="color:var(--gold)">👥 INVITE FRIENDS</h2>
+    <p class="notice">Invite friends and earn golden points!</p>
+    <h1 id="referralCount" style="color:var(--gold)">0</h1>
+    <div class="label">FRIENDS INVITED</div>
+    <div class="item">
+      <span>🎁 Your reward per friend</span>
+      <b style="color:var(--gold)">500 POINTS</b>
+    </div>
+    <div class="item">
+      <span>🌟 New friend's bonus</span>
+      <b style="color:var(--gold)">100 POINTS</b>
+    </div>
+    <p class="notice">Share your personal invitation link:</p>
+    <input id="referralLink" readonly
+      style="width:100%;padding:12px;border-radius:10px;background:#17120c;color:#f8cc70;border:1px solid #94702f">
+    <button onclick="copyReferral()">📋 COPY INVITE LINK</button>
+    <p class="notice">Your friend must open the bot using your link and launch the game.</p>
+  </div>
+</div>
+
+<button onclick="show('profile',this)"><span>👤</span>PROFILE</button>
+<button onclick="show('referrals',this)"><span>👥</span>INVITE</button>
+
+<button onclick="show('leaderboard',this)"><span>🏆</span>RANK</button>
+<button onclick="show('vip',this)"><span>👑</span>VIP</button>
+
+</nav>
+
+<script>
+
+const tg = window.Telegram?.WebApp;
+tg?.ready();
+tg?.expand();
+
+let balance = 0;
+let energy = 0;
+let maxEnergy = 1000;
+let power = 1;
+let loaded = false;
+
+async function api(endpoint, method = 'GET', body = undefined) {
+  if (!tg?.initData) {
+    throw new Error('Please open Miner TON inside Telegram.');
+  }
+
+  const options = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Telegram-Init-Data': tg.initData
+    }
+  };
+
+  if (body !== undefined) options.body = JSON.stringify(body);
+
+  const response = await fetch('/api/' + endpoint, options);
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Something went wrong.');
+  }
+
+  return data;
+}
+
+function render(data) {
+  balance = data.balance;
+  energy = data.energy;
+  maxEnergy = data.maxEnergy;
+  power = data.power;
+  loaded = true;
+
+  document.getElementById('balance').textContent =
+    Math.floor(balance).toLocaleString();
+
+  document.getElementById('energy').textContent =
+    energy + ' / ' + maxEnergy;
+
+  document.getElementById('energyfill').style.width =
+    (energy / maxEnergy * 100) + '%';
+
+  document.getElementById('profileBalance').textContent =
+    'Balance: ' + Math.floor(balance);
+
+  document.getElementById('power').textContent =
+    'Mining power: ' + power;
+
+  document.getElementById('level').textContent =
+    'Level: ' + (Math.floor(balance / 1000) + 1);
+
+  document.getElementById('cost').textContent =
+    100 + (power - 1) * 100;
+}
+
+async function loadPlayer() {
+  try {
+    const ref = new URLSearchParams(window.location.search).get('ref');
+    const endpoint = 'me' + (ref ? '?ref=' + encodeURIComponent(ref) : '');
+    const data = await api(endpoint);
+    render(data);
+
+    if (data.offlineReward > 0) {
+      const toast = document.getElementById('offlineToast');
+      document.getElementById('offlineAmount').textContent =
+        '+' + data.offlineReward.toLocaleString() + ' POINTS';
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 4500);
+    }
+
+    if (data.referralReward > 0) {
+      alert('WELCOME BONUS: +' + data.referralReward + ' POINTS!');
+    }
+
+    loadReferrals();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function loadReferrals() {
+  const field = document.getElementById('referralLink');
+  try {
+    const data = await api('referrals');
+    document.getElementById('referralCount').textContent = data.count ?? 0;
+    field.value = data.link || '';
+    if (!data.link) {
+      field.placeholder = 'Link missing: check BOT_USERNAME';
+    }
+  } catch (error) {
+    field.value = '';
+    field.placeholder = 'ERROR: ' + error.message;
+    alert('Referral API error: ' + error.message);
+    console.error('Referral API error:', error);
+  }
+}
+
+async function copyReferral() {
+  const field = document.getElementById('referralLink');
+
+  if (!field.value) {
+    alert('Referral link is not ready.');
+    return;
+  }
+
+  field.select();
+  field.setSelectionRange(0, 99999);
+
+  try {
+    await navigator.clipboard.writeText(field.value);
+  } catch {
+    document.execCommand('copy');
+  }
+
+  alert('Invitation link copied! Share it with your friends.');
+}
+
+
+async function loadTask() {
+  try {
+    const data = await api('task');
+    document.getElementById('taskProgress').textContent =
+      Math.min(data.progress, data.goal) + ' / ' + data.goal;
+
+    document.getElementById('taskBar').style.width =
+      Math.min(100, data.progress / data.goal * 100) + '%';
+
+    const button = document.getElementById('claimTaskButton');
+    const message = document.getElementById('taskMessage');
+
+    button.disabled = !data.canClaim;
+    button.textContent = data.claimed
+      ? '✅ REWARD CLAIMED'
+      : data.canClaim
+        ? '🎁 CLAIM 250 POINTS'
+        : '🔒 COMPLETE 100 MINES';
+
+    message.textContent = data.claimed
+      ? 'You already claimed today’s reward!'
+      : data.canClaim
+        ? 'Mission completed! Claim your reward.'
+        : 'Keep mining to complete your mission.';
+  } catch (error) {
+    document.getElementById('taskMessage').textContent =
+      'Could not load mission: ' + error.message;
+  }
+}
+
+async function claimTask() {
+  const button = document.getElementById('claimTaskButton');
+  button.disabled = true;
+
+  try {
+    const data = await api('task/claim', 'POST');
+    await loadPlayer();
+    await loadTask();
+    alert('Congratulations! +' + data.reward + ' POINTS received!');
+  } catch (error) {
+    alert(error.message);
+    await loadTask();
+  }
+}
+
+async function mine() {
+  if (!loaded) return;
+
+  try {
+    const data = await api('mine', 'POST');
+    render(data);
+    if (document.getElementById('tasks').classList.contains('active')) {
+      loadTask();
+    }
+    tg?.HapticFeedback?.impactOccurred('light');
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function daily() {
+  if (!loaded) return;
+
+  try {
+    const data = await api('daily', 'POST');
+    render(data);
+    alert('100 points received!');
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function buyUpgrade() {
+  if (!loaded) return;
+
+  try {
+    const data = await api('upgrade', 'POST');
+    render(data);
+    alert('Mining power upgraded!');
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function buyEnergy() {
+  if (!loaded) return;
+
+  try {
+    const data = await api('energy', 'POST');
+    render(data);
+    alert('Energy upgraded!');
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+
+async function loadLeaderboard() {
+  const list = document.getElementById('leaderboardList');
+  const rank = document.getElementById('myRank');
+
+  list.innerHTML = '<p class="notice">Loading players...</p>';
+
+  try {
+    const data = await api('leaderboard');
+
+    rank.textContent = data.myRank
+      ? 'YOUR RANK: #' + data.myRank + ' | ' + Number(data.myBalance).toLocaleString() + ' POINTS'
+      : 'YOUR RANK: Not ranked yet';
+
+    if (!data.players || data.players.length === 0) {
+      list.innerHTML = '<p class="notice">No players yet. Be the first miner!</p>';
+      return;
+    }
+
+    list.innerHTML = data.players.map(player => `
+      <div class="item" style="${player.isMe ? 'border:1px solid var(--gold);color:var(--gold);' : ''}">
+        <span>${player.rank <= 3 ? ['🥇','🥈','🥉'][player.rank - 1] : '#' + player.rank}
+          ${player.isMe ? ' YOU' : ' MINER'}</span>
+        <b>${Number(player.balance).toLocaleString()} POINTS</b>
+      </div>
+    `).join('');
+  } catch (error) {
+    list.innerHTML = '<p class="notice">Could not load ranking: ' + error.message + '</p>';
+  }
+}
+
+
+async function loadVIP() {
+  const status = document.getElementById('vipStatus');
+
+  try {
+    const data = await api('vip');
+    const buttons = [
+      document.getElementById('buyVipBronze'),
+      document.getElementById('buyVipGold'),
+      document.getElementById('buyVipDiamond')
+    ];
+
+    if (data.owned) {
+      const names = { bronze: 'VIP Bronze', gold: 'VIP Gold', diamond: 'VIP Diamond' };
+      status.textContent = 'YOUR MEMBERSHIP: ' +
+        (names[data.owned] || data.owned) + ' | +' + data.powerBonus + ' POWER';
+
+      buttons.forEach(button => {
+        button.disabled = true;
+        button.textContent = 'ALREADY OWNED';
+      });
+    } else {
+      status.textContent = 'NO VIP MEMBERSHIP YET';
+    }
+  } catch (error) {
+    status.textContent = 'Could not load VIP: ' + error.message;
+  }
+}
+
+async function buyVIP(tier) {
+  const names = { bronze: 'VIP Bronze', gold: 'VIP Gold', diamond: 'VIP Diamond' };
+  const prices = { bronze: 5000, gold: 15000, diamond: 40000 };
+
+  if (!confirm('Buy ' + names[tier] + ' for ' +
+      prices[tier].toLocaleString() +
+      ' points? Permanent membership, one purchase only.')) return;
+
+  try {
+    const data = await api('vip/buy', 'POST', { tier });
+    render(data.player);
+    await loadVIP();
+    alert('Congratulations! ' + names[tier] +
+      ' activated! Power +' + data.powerBonus);
+  } catch (error) {
+    alert(error.message);
+    await loadVIP();
+  }
+}
+
+function show(id, btn) {
+  document.querySelectorAll('.section').forEach(x =>
+    x.classList.remove('active')
+  );
+
+  document.getElementById(id).classList.add('active');
+
+  document.querySelectorAll('nav button').forEach(x =>
+    x.classList.remove('active')
+  );
+
+  btn.classList.add('active');
+
+  if (id === 'referrals') {
+    loadReferrals();
+  }
+
+  if (id === 'leaderboard') {
+    loadLeaderboard();
+  }
+
+  if (id === 'tasks') {
+    loadTask();
+  }
+
+  if (id === 'vip') {
+    loadVIP();
+  }
+}
+
+loadPlayer();
+
+</script>
+</body>
+</html>
+
